@@ -11,25 +11,22 @@ class Decoder(nn.Module):
     def forward(self, z):
         z = F.tanh(self.linear1(z))
         y = F.sigmoid(self.linear2(z))
-        return torch.distributions.Normal(y, torch.ones_like(y))
+        return y
 
 
 class Encoder(nn.Module):
     def __init__(self, input_size, hidden_size, latent_dim):
         super(Encoder, self).__init__()
         self.linear1 = nn.Linear(input_size, hidden_size)
-        self.linear2 = nn.Linear(hidden_size, hidden_size)
         self.fc_mu = nn.Linear(hidden_size, latent_dim)
         self.fc_var = nn.Linear(hidden_size, latent_dim)
 
     def forward(self, x):
-        x = F.relu(self.linear1(x))
-        x = self.linear2(x)
+        x = self.linear1(x)
         h = F.tanh(x)
         mu = self.fc_mu(h)
         log_var = self.fc_var(h)
-        q_z = torch.distributions.Normal(loc=mu, scale=torch.exp(log_var))
-        return q_z
+        return mu, log_var
 
 class VAE(nn.Module):
     def __init__(self, input_size, hidden_size, latent_dim, output_size):
@@ -37,8 +34,14 @@ class VAE(nn.Module):
         self.encoder = Encoder(input_size=input_size, hidden_size=hidden_size, latent_dim=latent_dim)
         self.decoder = Decoder(latent_dim=latent_dim, hidden_size=hidden_size, output_size=output_size)
 
+    def reparameterize(self, mu, log_var):
+        std = log_var.mul(0.5).exp_()
+        esp = torch.randn(*mu.size())
+        z = mu + std * esp.to(torch.device("cuda"))
+        return z
+
+
     def forward(self, x):
-        q_z = self.encoder(x)
-        z = q_z.rsample()
-        p_x = self.decoder(z)
-        return p_x, q_z
+        mu, log_var = self.encoder(x)
+        z = self.reparameterize(mu, log_var)
+        return self.decoder(z), mu, log_var

@@ -13,7 +13,7 @@ else:
 checkpoint = "checkpoints/100.pth"
 input_size = 28 * 28
 hidden_size = 512
-latent_dim = 8
+latent_dim = 20
 vae = VAE(input_size, hidden_size, latent_dim, input_size).to(device)
 
 with torch.no_grad():
@@ -23,11 +23,9 @@ with torch.no_grad():
     print(ret)
 
     latent_sample = torch.randn(latent_dim).to(device)
-    generated_data = vae.decoder(latent_sample)
+    generated_data = vae.decoder(latent_sample).view(28, 28).cpu()
 
-    sample = generated_data.sample().view(28, 28).cpu()
-
-    plt.figure(figsize=(10, 10))
+    plt.figure(figsize=(4, 4))
     plt.axis('Off')
-    plt.imshow(sample, cmap="gray")
+    plt.imshow(generated_data, cmap="gray")
     plt.show()

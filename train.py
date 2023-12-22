@@ -2,6 +2,7 @@ import torch
 import torchvision
 from torchvision import transforms
 from torch.utils.data import DataLoader
+import torch.nn.functional as F
 import os
 
 from model import VAE
@@ -21,7 +22,7 @@ batch_size = 256
 learning_rate = 1e-3
 input_size = 28 * 28
 hidden_size = 512
-latent_dim = 8
+latent_dim = 20
 
 transform = transforms.Compose(
     [transforms.ToTensor(),
@@ -31,6 +32,13 @@ mnist = torchvision.datasets.MNIST(root='./data', train=True, download=True, tra
 train_data = DataLoader(mnist, batch_size=batch_size, shuffle=True, pin_memory=True)
 vae = VAE(input_size, hidden_size, latent_dim, input_size).to(device)
 optimizer = torch.optim.Adam(vae.parameters(), lr=learning_rate)
+
+def loss_fn(recon_x, x, mu, log_var):
+    BCE = F.binary_cross_entropy(recon_x, x, size_average=False)
+
+    KL = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp())
+    return BCE + KL
+
 
 for epoch in range(1, num_epochs + 1):
     # Resume
@@ -45,16 +53,14 @@ for epoch in range(1, num_epochs + 1):
         inputs, _ = data
         inputs = inputs.view(-1, input_size).to(device)
         optimizer.zero_grad()
-        p_x, q_z = vae(inputs)
+        recon_inputs, mu, log_var = vae(inputs)
 
         # Loss
-        likelihood = p_x.log_prob(inputs).sum(-1).mean()
-        kl = torch.distributions.kl_divergence(q_z, torch.distributions.Normal(0, 1.0)).sum(-1).mean()
-        loss = -(likelihood - kl)
+        loss = loss_fn(recon_inputs, inputs, mu, log_var)
         loss.backward()
         optimizer.step()
     
-    print("Epoch {:<4} Loss: {:<8.4f} Likelihood: {:<8.4f} KL: {:<8.4f}".format(epoch, loss.item(), likelihood.item(), kl.item()))
+    print("Epoch {:<4} Loss: {:<8.4f}".format(epoch, loss.item()))
     checkpoints = {
         'state_dict': vae.state_dict(),
         'optimizer': optimizer.state_dict(),
