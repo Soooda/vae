@@ -3,7 +3,7 @@ import torchvision
 from torchvision import transforms
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
-import os
+import os.path as osp
 
 from model import VAE
 
@@ -18,17 +18,17 @@ else:
 Parameters
 '''
 num_epochs = 100
-batch_size = 256
+batch_size = 128
 learning_rate = 1e-3
 input_size = 28 * 28
-hidden_size = 512
+hidden_size = 400
 latent_dim = 20
 
 transform = transforms.Compose(
     [transforms.ToTensor(),
     #  transforms.Normalize(0.5, 1)
     ])
-mnist = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+mnist = torchvision.datasets.MNIST(root=osp.abspath('./data'), train=True, download=True, transform=transform)
 train_data = DataLoader(mnist, batch_size=batch_size, shuffle=True, pin_memory=True)
 vae = VAE(input_size, hidden_size, latent_dim, input_size).to(device)
 optimizer = torch.optim.Adam(vae.parameters(), lr=learning_rate)
@@ -42,8 +42,8 @@ def loss_fn(recon_x, x, mu, log_var):
 
 for epoch in range(1, num_epochs + 1):
     # Resume
-    if os.path.exists("checkpoints/" + str(epoch) + ".pth"):
-        temp = torch.load("checkpoints/" + str(epoch) + ".pth")
+    if osp.exists(osp.join("checkpoints/" + str(epoch) + ".pth")):
+        temp = torch.load(osp.join("checkpoints/" + str(epoch) + ".pth"))
         ret = vae.load_state_dict(temp['state_dict'])
         print(ret)
         optimizer.load_state_dict(temp['optimizer'])
@@ -65,4 +65,4 @@ for epoch in range(1, num_epochs + 1):
         'state_dict': vae.state_dict(),
         'optimizer': optimizer.state_dict(),
     }
-    torch.save(checkpoints, "checkpoints/" + str(epoch) + ".pth")
+    torch.save(checkpoints, osp.join("checkpoints/" + str(epoch) + ".pth"))
