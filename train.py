@@ -1,3 +1,4 @@
+import argparse
 import torch
 import torchvision
 from torchvision import transforms
@@ -17,33 +18,37 @@ else:
 '''
 Parameters
 '''
-num_epochs = 100
-batch_size = 128
-learning_rate = 1e-3
-input_size = 28 * 28
-hidden_size = 400
-latent_dim = 20
+parser = argparse.ArgumentParser()
+# Overall options
+parser.add_argument("--num_epochs", type=int, default=100, help="Number of training epochs")
+parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
+parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate")
+parser.add_argument("--input_size", default=28*28, help="Input image's size (W x H)")
+parser.add_argument("--hidden_size", type=int, default=400, help="Hidden layer's dimenion")
+parser.add_argument("--latent_size", type=int, default=20, help="Latent Layer's dimension")
+
+opt = parser.parse_args()
 
 transform = transforms.Compose(
     [transforms.ToTensor(),
     #  transforms.Normalize(0.5, 1)
     ])
-mnist = torchvision.datasets.MNIST(root=osp.abspath('./data'), train=True, download=True, transform=transform)
-train_data = DataLoader(mnist, batch_size=batch_size, shuffle=True, pin_memory=True)
-vae = VAE(input_size, hidden_size, latent_dim, input_size).to(device)
-optimizer = torch.optim.Adam(vae.parameters(), lr=learning_rate)
+mnist = torchvision.datasets.MNIST(root=osp.sep.join(('.', 'data')), train=True, download=True, transform=transform)
+train_data = DataLoader(mnist, batch_size=opt.batch_size, shuffle=True, pin_memory=True)
+vae = VAE(opt.input_size, opt.hidden_size, opt.latent_size, opt.input_size).to(device)
+optimizer = torch.optim.Adam(vae.parameters(), lr=opt.learning_rate)
 
 def loss_fn(recon_x, x, mu, log_var):
-    BCE = F.binary_cross_entropy(recon_x, x, size_average=False)
+    BCE = F.binary_cross_entropy(recon_x, x, reduction="sum")
 
     KL = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp())
     return BCE + KL
 
 
-for epoch in range(1, num_epochs + 1):
+for epoch in range(1, opt.num_epochs + 1):
     # Resume
-    if osp.exists(osp.join("checkpoints/" + str(epoch) + ".pth")):
-        temp = torch.load(osp.join("checkpoints/" + str(epoch) + ".pth"))
+    if osp.exists(osp.sep.join(("checkpoints", str(epoch) + ".pth"))):
+        temp = torch.load(osp.sep.join(("checkpoints/", str(epoch) + ".pth")))
         ret = vae.load_state_dict(temp['state_dict'])
         print(ret)
         optimizer.load_state_dict(temp['optimizer'])
@@ -51,7 +56,7 @@ for epoch in range(1, num_epochs + 1):
 
     for data in train_data:
         inputs, _ = data
-        inputs = inputs.view(-1, input_size).to(device)
+        inputs = inputs.view(-1, opt.input_size).to(device)
         optimizer.zero_grad()
         recon_inputs, mu, log_var = vae(inputs)
 
@@ -65,4 +70,4 @@ for epoch in range(1, num_epochs + 1):
         'state_dict': vae.state_dict(),
         'optimizer': optimizer.state_dict(),
     }
-    torch.save(checkpoints, osp.join("checkpoints/" + str(epoch) + ".pth"))
+    torch.save(checkpoints, osp.sep.join(("checkpoints", str(epoch) + ".pth")))

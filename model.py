@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 class Decoder(nn.Module):
     def __init__(self, latent_dim, hidden_size, output_size):
@@ -9,8 +8,8 @@ class Decoder(nn.Module):
         self.linear2 = nn.Linear(hidden_size, output_size)
     
     def forward(self, z):
-        z = F.tanh(self.linear1(z))
-        y = F.sigmoid(self.linear2(z))
+        z = torch.tanh(self.linear1(z))
+        y = torch.sigmoid(self.linear2(z))
         return y
 
 
@@ -23,7 +22,7 @@ class Encoder(nn.Module):
 
     def forward(self, x):
         x = self.linear1(x)
-        h = F.tanh(x)
+        h = torch.tanh(x)
         mu = self.fc_mu(h)
         log_var = self.fc_var(h)
         return mu, log_var
@@ -36,10 +35,9 @@ class VAE(nn.Module):
 
     def reparameterize(self, mu, log_var):
         std = log_var.mul(0.5).exp_()
-        esp = torch.randn(*mu.size())
-        z = mu + std * esp.to(torch.device("mps"))
+        esp = torch.randn(mu.size()).to(mu.get_device())
+        z = mu + std * esp
         return z
-
 
     def forward(self, x):
         mu, log_var = self.encoder(x)
