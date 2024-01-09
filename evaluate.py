@@ -14,7 +14,7 @@ else:
 
 parser = argparse.ArgumentParser()
 # Overall options
-parser.add_argument("--checkpoint", type=str, default=osp.sep.join(("checkpoints", "100.pth")), help="Path to the weights")
+parser.add_argument("--checkpoint", type=str, default=osp.sep.join(("checkpoints", "400.pth")), help="Path to the weights")
 parser.add_argument("--input_size", default=28*28, help="Input image's size (W x H)")
 parser.add_argument("--hidden_size", type=int, default=400, help="Hidden layer's dimenion")
 parser.add_argument("--latent_size", type=int, default=20, help="Latent Layer's dimension")

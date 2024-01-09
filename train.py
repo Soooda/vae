@@ -20,7 +20,7 @@ Parameters
 '''
 parser = argparse.ArgumentParser()
 # Overall options
-parser.add_argument("--num_epochs", type=int, default=100, help="Number of training epochs")
+parser.add_argument("--num_epochs", type=int, default=400, help="Number of training epochs")
 parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
 parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate")
 parser.add_argument("--input_size", default=28*28, help="Input image's size (W x H)")
@@ -40,7 +40,6 @@ optimizer = torch.optim.Adam(vae.parameters(), lr=opt.learning_rate)
 
 def loss_fn(recon_x, x, mu, log_var):
     BCE = F.binary_cross_entropy(recon_x, x, reduction="sum")
-
     KL = -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp())
     return BCE + KL
 
