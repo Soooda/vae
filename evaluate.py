@@ -24,7 +24,7 @@ vae = VAE(opt.input_size, opt.hidden_size, opt.latent_size, opt.input_size).to(d
 
 with torch.no_grad():
     vae.eval()
-    temp = torch.load(opt.checkpoint)
+    temp = torch.load(opt.checkpoint, map_location=device)
     ret = vae.load_state_dict(temp['state_dict'])
     print(ret)
 
