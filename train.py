@@ -69,4 +69,7 @@ for epoch in range(1, opt.num_epochs + 1):
         'state_dict': vae.state_dict(),
         'optimizer': optimizer.state_dict(),
     }
+    
+    if not os.path.exists("./checkpoints"):
+        os.mkdir("./checkpoints")
     torch.save(checkpoints, osp.sep.join(("checkpoints", str(epoch) + ".pth")))
